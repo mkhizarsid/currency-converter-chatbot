@@ -1,26 +1,25 @@
-from flask import Flask,request,jsonify
+from flask import Flask, request, jsonify
 import requests
 
 app = Flask(__name__)
 
-
-
-@app.route('/webhook',methods=['POST'])
+@app.route('/webhook', methods=['POST'])
 def home():
     data = request.get_json()
-    source_currency = data['queryResult']['parameters']['unit-currency'][0]['currency']
-    amount = data['queryResult']['parameters']['unit-currency'][0]['amount']
-    destination_currency = data['queryResult']['parameters']['currency-name'][0]
     
-    response = requests.get('https://api.exchangerate-api.com/v4/latest/'+ source_currency)
-    data_api = response.json()
-    rates = data_api['rates'][destination_currency]
-    converted_amount = amount * rates
+    params = data['queryResult']['parameters']
+    amount = params['unit-currency'][0]['amount']
+    from_currency = params['unit-currency'][0]['currency']
+    to_currency = params['currency-name'][0]
     
+    response = requests.get(f'https://api.exchangerate-api.com/v4/latest/{from_currency}')
+    rates = response.json()['rates']
+    rate = rates[to_currency]
+    converted = amount * rate
     
-    print(f"Source Currency: {source_currency}, Amount: {amount}, Destination Currency: {destination_currency} , Converted Amount: {converted_amount}")
-    return jsonify({"fulfillmentText": "Hello from Flask!"})
+    result = f"{amount} {from_currency} = {converted:.2f} {to_currency}"
+    
+    return jsonify({"fulfillmentText": result})
 
 if __name__ == '__main__':
     app.run(debug=True)
-    
